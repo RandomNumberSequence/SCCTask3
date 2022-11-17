@@ -92,7 +92,6 @@ public class SCC {
 		
 		//Mainloop des Algorithmus wie in der Vorlesung beschrieben
 		while(SCCnotFound()) {
-			System.out.println("Start.");
 			DFS(adjacencyMatrix);
 			DFS(invertedAdjacencyMatrix, lookForMaxFinishTime());
 			resultList.add(compileSCC());
