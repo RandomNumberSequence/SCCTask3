@@ -6,13 +6,37 @@ import java.util.*;
 
 
 public class SCC {
-	
+
 	static int[][] adjacencyMatrix;
 	static int[][] invertedAdjacencyMatrix;
 	static VerticeColor[] coloredVertices;
-	static int numVertices = 1000;
-	static int[] distanceToSource;
+	/**
+	 * Beschreibt ob die SCC eines Knotens bereits gefunden wurde.
+	 */
+	static boolean[] foundSCC;
+	/**
+	 * Speichert die finishing Time für die verschiedenen Knoten
+	 */
+	static int[] finishingTime;
+	/**
+	 * Counter der die finishing Time über die Rekursion trackt.
+	 */
+	static int finCounter;
 	
+	
+	/**
+	 * Diese Variablen werden manipuliert um eine Datei in das Programm zu laden, aus Zeitgründen
+	 * musste auf einen richtigen Import leider verzichtet werden.
+	 * Damit der Dateinamen verwendet werden kann, muss sich die Datei im Projektverzeichnis liegen.
+	 */
+	static int numVertices = 1000; //1000 / 7
+	static String filePath = "big_graph.csv"; //big_graph.csv / small_graph.csv
+	
+	/** Enum zur Darstellung der Einfärbung
+	 * 
+	 * @author jh
+	 *
+	 */
 	enum VerticeColor{
 		WHITE,
 		GREY,
@@ -21,23 +45,24 @@ public class SCC {
 
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
-		String filePath = "big_graph.csv";
+		
+		//Hilfsvariablen für den Import
 		String line;
 		String[] splitLine;
-		
 		int counter = 0;
 		BufferedReader br;
 		
-		//System.out.println("Dateipfad: \n");
-		//filePath = System.console().readLine();
+		//Variable zum Speichern der Ergebnisse
+		ArrayList<ArrayList<Integer>> resultList = new ArrayList<ArrayList<Integer>>();
 		
-		//System.out.println("Wieviele Knoten hat der Graph: \n");
-		//numVertices = Integer.parseInt(System.console().readLine());
-		
+		//Initialisierung der benötigten Arrays
 		adjacencyMatrix = new int[numVertices][numVertices];
 		invertedAdjacencyMatrix = new int[numVertices][numVertices];
 		coloredVertices = new VerticeColor[numVertices];
+		finishingTime = new int[numVertices];
+		foundSCC = new boolean[numVertices];
 		
+		//Import via BufferedReader und Parsen zu Int
 		try {
 			br = new BufferedReader(new FileReader(filePath));
 			while(br.ready()) {
@@ -52,48 +77,140 @@ public class SCC {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		//for(int i = 0; i < array.length; i++) {
-		//	for(int j = 0; j < array[i].length; j++) {
-		//		System.out.print(array[i][j]);
-		//	}
-		//	System.out.println();
-		//}
 		
+		//Erstellen der invertierten Adjazenzmatrix
 		for(int i = 0; i < adjacencyMatrix.length; i++) {
 			for(int j = 0; j < adjacencyMatrix[i].length; j++) {
 				invertedAdjacencyMatrix[j][i] = adjacencyMatrix[i][j];
 			}
 		}
 		
+		//Initialisieren des foundSCC Arrays
+		for(int i = 0; i < foundSCC.length; i++) {
+			foundSCC[i] = false;
+		}
 		
-	}
-	
-	public void resetColoredVertices() {
-		for(VerticeColor c: coloredVertices) {	
-				c = VerticeColor.WHITE;
+		//Mainloop des Algorithmus wie in der Vorlesung beschrieben
+		while(SCCnotFound()) {
+			System.out.println("Start.");
+			DFS(adjacencyMatrix);
+			DFS(invertedAdjacencyMatrix, lookForMaxFinishTime());
+			resultList.add(compileSCC());
+		}
+		
+		//Ausgabe des Ergebnis
+		for(ArrayList<Integer> al : resultList) {
+			for(Integer i : al) {
+				System.out.print(i + ",");
+			}
+			System.out.println(";");
 		}
 	}
 	
-	public void DFS(int[][] matrix) {
+	/** stellt eine gefundene SCC aus dem coloredVertices Array zusammen
+	 * und setzt die entsprechenden Knoten in foundSCC auf true um zu markieren
+	 * das dieser Knoten bereits zu einer SCC gehört
+	 * 
+	 * @return Liste von Indices
+	 */
+	static public ArrayList<Integer> compileSCC(){
+		ArrayList<Integer> resultArrayList = new ArrayList<Integer>();
+		for(int i = 0; i < coloredVertices.length; i++) {
+			if(coloredVertices[i] == VerticeColor.BLACK) {
+				resultArrayList.add(i);
+				foundSCC[i] = true;
+			}
+		}
+		
+		return resultArrayList;
+	}
+	
+	/** Überprüft ob das foundSCC Array noch Knoten 
+	 * 
+	 * @return wahr wenn noch Knoten existieren, falsch wenn alle Knoten zu einer SCC zugeordnet sind
+	 */
+	static public boolean SCCnotFound() {
+		for(int i = 0; i < foundSCC.length; i++) {
+			if(!foundSCC[i]) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	/** Sucht den Index mit der größten finishTime
+	 * 
+	 * @return der Index mit der maximalen finishTime
+	 */
+	static public int lookForMaxFinishTime() {
+		int max = -1;
+		int max_index = -1;
+		for(int i = 0; i < finishingTime.length; i++) {
+			if(finishingTime[i] > max) {
+				max = finishingTime[i];
+				max_index = i;
+			}
+		}
+		//The max_index is set to -1 to make sure that it doesn't interfere with future values since 0 is a valid value
+		finishingTime[max_index] = -1;
+		return max_index;
+	}
+	
+	/**
+	 * resets the coloredVertices Array to reuse it in the DFS
+	 */
+	static public void resetColoredVertices() {
+		for(int i = 0; i < coloredVertices.length; i++) {	
+				coloredVertices[i] = VerticeColor.WHITE;
+		}
+	}
+	
+	/**
+	 * Startet DFS ohne bestimmte Quelle
+	 * @param Adjazenzmatrix bzw. Invertierte Adjazenzmatrix
+	 */
+	static public void DFS(int[][] matrix) {
 		resetColoredVertices();
-		for(int i = 0; i < numVertices; i++) {
-			if(coloredVertices[i] == VerticeColor.WHITE) {
-				DFSVisit(matrix, i, 0);
+		finCounter = 0;
+		for(int i = 0; i < numVertices; i++) {	
+			if(!foundSCC[i] && coloredVertices[i] == VerticeColor.WHITE) {
+				DFSVisit(matrix, i);
 			}
 		}
 	}
 	
-	public void DFSVisit(int[][] matrix, int src, int distance){
+	/**
+	 * Startet DFS mit bestimmter Quelle
+	 * @param Adjazenzmatrix bzw. Invertierte Adjazenzmatrix
+	 * @param Index
+	 */
+	static public void DFS(int[][] matrix, int src) {
+		resetColoredVertices();	
+		finCounter = 0;
+		DFSVisit(matrix, src);
+		//Zusätzliche Zuweisung um zu verhindern das der zweite DFS Algorithmus den -1 Wert im 
+		//finishingTime Array überschreibt
+		finishingTime[src] = -1;
+	}
+	
+	/**
+	 * Rekursion des DFS algorithmus, mit Counter und Zuweisung um die FinishTime zu tracken
+	 * @param Adjazenzmatrix bzw. Invertierte Adjazenzmatrix
+	 * @param Index
+	 */
+	static public void DFSVisit(int[][] matrix, int src){
 		coloredVertices[src] = VerticeColor.GREY;
-		distanceToSource[src] = distance;
-		for(int i : matrix[src]) {
+		
+		for(int i = 0; i < matrix[src].length; i++) {
 			if(matrix[src][i] == 1) {
-				if(coloredVertices[i] == VerticeColor.WHITE) {
-					DFSVisit(matrix, i, distance++);
+				if(!foundSCC[i] && coloredVertices[i] == VerticeColor.WHITE) {
+					DFSVisit(matrix, i);
 				}
 			}		
 		}
 		coloredVertices[src] = VerticeColor.BLACK;
+		finishingTime[src] = finCounter;
+		finCounter++;
 	}
 
 }
