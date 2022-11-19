@@ -26,8 +26,18 @@ public class SCC {
 	 * aus Zeitgründen musste auf einen richtigen Import leider verzichtet werden.
 	 * Damit der Dateinamen verwendet werden kann, muss sich die Datei im
 	 * Projektverzeichnis liegen.
+	 * 
+	 * Anzahl der Knoten des Graphen
 	 */
 	static int numVertices = 1000; // 1000 / 7
+	/**
+	 * Diese Variablen werden manipuliert um eine Datei in das Programm zu laden,
+	 * aus Zeitgründen musste auf einen richtigen Import leider verzichtet werden.
+	 * Damit der Dateinamen verwendet werden kann, muss sich die Datei im
+	 * Projektverzeichnis liegen.
+	 * 
+	 * Dateiname der .csv Datei der Adjazenzmatrix
+	 */
 	static String filePath = "big_graph.csv"; // big_graph.csv / small_graph.csv
 
 	/**
@@ -53,11 +63,7 @@ public class SCC {
 		ArrayList<ArrayList<Integer>> resultList = new ArrayList<ArrayList<Integer>>();
 
 		// Initialisierung der benötigten Arrays
-		adjacencyMatrix = new int[numVertices][numVertices];
-		invertedAdjacencyMatrix = new int[numVertices][numVertices];
-		coloredVertices = new VerticeColor[numVertices];
-		finishingTime = new int[numVertices];
-		foundSCC = new boolean[numVertices];
+		initializeArrays();
 
 		// Import via BufferedReader und Parsen zu Int
 		try {
@@ -76,16 +82,10 @@ public class SCC {
 		}
 
 		// Erstellen der invertierten Adjazenzmatrix
-		for (int i = 0; i < adjacencyMatrix.length; i++) {
-			for (int j = 0; j < adjacencyMatrix[i].length; j++) {
-				invertedAdjacencyMatrix[j][i] = adjacencyMatrix[i][j];
-			}
-		}
+		initializeInvAdjMatrix();
 
 		// Initialisieren des foundSCC Arrays
-		for (int i = 0; i < foundSCC.length; i++) {
-			foundSCC[i] = false;
-		}
+		initializeFoundSCC();
 
 		// Mainloop des Algorithmus wie in der Vorlesung beschrieben
 		while (SCCnotFound()) {
@@ -95,14 +95,9 @@ public class SCC {
 		}
 
 		// Ausgabe des Ergebnis
-		for (ArrayList<Integer> al : resultList) {
-			for (Integer i : al) {
-				System.out.print(i + ",");
-			}
-			System.out.println(";");
-		}
+		printOutResults(resultList);
 	}
-
+	
 	/**
 	 * stellt eine gefundene SCC aus dem coloredVertices Array zusammen und setzt
 	 * die entsprechenden Knoten in foundSCC auf true um zu markieren das dieser
@@ -218,5 +213,55 @@ public class SCC {
 		finishingTime[src] = finCounter;
 		finCounter++;
 	}
-
+	
+	/**
+	 * Initialisierung der Arrays
+	 */
+	static public void initializeArrays() {
+		adjacencyMatrix = new int[numVertices][numVertices];
+		invertedAdjacencyMatrix = new int[numVertices][numVertices];
+		coloredVertices = new VerticeColor[numVertices];
+		finishingTime = new int[numVertices];
+		foundSCC = new boolean[numVertices];
+	}
+	
+	/**
+	 * Initialisierung der invertierten AdjazenzMatrix
+	 */
+	static public void initializeInvAdjMatrix() {
+		for (int i = 0; i < adjacencyMatrix.length; i++) {
+			for (int j = 0; j < adjacencyMatrix[i].length; j++) {
+				invertedAdjacencyMatrix[j][i] = adjacencyMatrix[i][j];
+			}
+		}
+	}
+	
+	/**
+	 * Initialisierung des FoundSCC arrays
+	 */
+	static public void initializeFoundSCC() {
+		for (int i = 0; i < foundSCC.length; i++) {
+			foundSCC[i] = false;
+		}
+	}
+	
+	/**
+	 * Ausgabefunktion der Resultate des Algorithmus
+	 * @param resultList eine Liste der SCCs, jedes SCC hat eine eigene Liste mit allen im SCC enthaltenen Knoten
+	 */
+	static public void printOutResults(ArrayList<ArrayList<Integer>> resultList) {
+		int counter = 0;
+		for (ArrayList<Integer> al : resultList) {
+			counter = 0;
+			for (Integer i : al) {
+				if(counter % 30 == 0)
+				{
+					System.out.println();
+				}
+				System.out.print(i + " ,");
+				counter++;
+			}
+			System.out.println();
+		}
+	}
 }
